@@ -28,8 +28,10 @@ const char *usb_strings[] = {
 	"DEMO",
 };
 
-// The cdc acm standard says this endpoint is optional,
-// but apparently the linux driver crashes without it.
+
+/* Libopencm3 example code claims this endpoint is optional,
+in the cdc acm standard. As far a I can see it is not, and
+apparently the linux driver crashes without it. */
 const struct usb_endpoint_desciptor notif_endpoint = {
 	.bLenght = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType = USB_DT_ENDPOINT,
@@ -56,6 +58,42 @@ const struct usb_endpoint_desciptor data_endpoints[] = {
 		.wMaxPacketSize = 64,
 		.bInterval = 1,
 	}
+};
+
+const struct {
+	struct usb_cdc_header_descriptor header;
+	struct usb_cdc_acm_descriptor acm;
+	struct usb_cdc_call_management_descriptor call_mngmnt;
+	struct usb_cdc_union_descriptor cdc_union;
+} __attribute__((packed)) cdc_functional_descriptors =
+{
+	.header = {
+		.bFunctionLength = sizeof(struct usb_cdc_header_descriptor),
+		.bDescriptorType = CS_INTERFACE,
+		.bDescriptorSubtype = USB_CDC_TYPE_HEADER,
+		.bcdCDC = 0x0110,	// version of the cdc standard
+	},
+	.acm = {
+		.bFunctionLength = sizeof(struct usb_cdc_acm_descriptor),
+		.bDescriptorType = CS_INTERFACE,
+		.bDescriptorSubtype = USB_CDC_TYPE_ACM,
+		.bmCapabilities = 0,
+	},
+	.call_mngmnt = {
+		.bFunctionLength = sizeof(struct usb_cdc_call_management_descriptor),
+		.bDescriptorType = CS_INTERFACE,
+		.bDescriptorSubtype = USB_CDC_TYPE_CALL_MANAGEMENT,
+		.bmCapabilities = 0,
+		.bDataInterface = 1,
+	},
+	.cdc_union = {
+		.bFunctionLength = sizeof(struct usb_cdc_union_descriptor),
+		.bDescriptorType = CS_INTERFACE,
+		.bDescriptorSubtype = USB_CDC_TYPE_UNION,
+		.bControlInterface = 0,
+		.bSubordinateInterface0 = 1,
+	}
+	
 };
 
 
