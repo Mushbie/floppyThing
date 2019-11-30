@@ -6,7 +6,7 @@
 #include <libopencm3/usb/cdc.h>
 
 const struct usb_device_descriptor dev_desc = {
-	.bLenght = USB_DT_DEVICE_SIZE,
+	.bLength = USB_DT_DEVICE_SIZE,
 	.bDescriptorType = USB_DT_DEVICE,
 	.bcdUSB = 0x0200,		// usb version number
 	.bDeviceClass = USB_CLASS_CDC,
@@ -32,18 +32,18 @@ const char *usb_strings[] = {
 /* Libopencm3 example code claims this endpoint is optional,
 in the cdc acm standard. As far a I can see it is not, and
 apparently the linux driver crashes without it. */
-const struct usb_endpoint_desciptor notif_endpoint = {
-	.bLenght = USB_DT_ENDPOINT_SIZE,
+const struct usb_endpoint_descriptor notif_endpoint = {
+	.bLength = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType = USB_DT_ENDPOINT,
 	.bEndpointAddress = 0x83,
-	.bmAttributes = USB_ENDPOINT_ATTR_INTERUPT,
+	.bmAttributes = USB_ENDPOINT_ATTR_INTERRUPT,
 	.wMaxPacketSize = 16,
 	.bInterval = 255,
 };
 
-const struct usb_endpoint_desciptor data_endpoints[] = {
+const struct usb_endpoint_descriptor data_endpoints[] = {
 	{
-		.bLenght = USB_DT_ENDPOINT_SIZE,
+		.bLength = USB_DT_ENDPOINT_SIZE,
 		.bDescriptorType = USB_DT_ENDPOINT,
 		.bEndpointAddress = 0x01,
 		.bmAttributes = USB_ENDPOINT_ATTR_BULK,
@@ -51,7 +51,7 @@ const struct usb_endpoint_desciptor data_endpoints[] = {
 		.bInterval = 1,
 	},
 	{
-		.bLenght = USB_DT_ENDPOINT_SIZE,
+		.bLength = USB_DT_ENDPOINT_SIZE,
 		.bDescriptorType = USB_DT_ENDPOINT,
 		.bEndpointAddress = 0x82,
 		.bmAttributes = USB_ENDPOINT_ATTR_BULK,
@@ -95,31 +95,31 @@ const struct {
 	}
 };
 
-const struct usb_interface_desciptor com_interface = {
-	.bLenght = USB_DT_INTERFACE_SIZE,
+const struct usb_interface_descriptor com_interface = {
+	.bLength = USB_DT_INTERFACE_SIZE,
 	.bDescriptorType = USB_DT_INTERFACE,
 	.bInterfaceNumber = 0,
 	.bAlternateSetting = 0,
 	.bNumEndpoints = 1,
 	.bInterfaceClass = USB_CLASS_CDC,
-	.bInterfaceSubclass = USB_CDC_SUBCLASS_ACM,
-	.bInterfacePortocol = USB_CDC_PROTOCOL_AT,
-	.bInterface = 0,
+	.bInterfaceSubClass = USB_CDC_SUBCLASS_ACM,
+	.bInterfaceProtocol = USB_CDC_PROTOCOL_AT,
+	.iInterface = 0,
 	.endpoint = &notif_endpoint,
 	.extra = &cdc_functional_descriptors,
 	.extralen = sizeof(cdc_functional_descriptors)
 };
 
-const struct usb_interface_desciptor data_interface = {
-	.bLenght = USB_DT_INTERFACE_SIZE,
+const struct usb_interface_descriptor data_interface = {
+	.bLength = USB_DT_INTERFACE_SIZE,
 	.bDescriptorType = USB_DT_INTERFACE,
 	.bInterfaceNumber = 1,
 	.bAlternateSetting = 0,
 	.bNumEndpoints = 2,
 	.bInterfaceClass = USB_CLASS_DATA,
-	.bInterfaceSubclass = 0,
-	.bInterfacePortocol = 0,
-	.bInterface = 0,
+	.bInterfaceSubClass = 0,
+	.bInterfaceProtocol = 0,
+	.iInterface = 0,
 	.endpoint = data_endpoints
 };
 
@@ -130,14 +130,14 @@ const struct usb_interface interfaces[] = {
 	},
 	{
 		.num_altsetting = 1,
-		.altsetting = data_interface,
+		.altsetting = &data_interface,
 	}
 };
 
 const struct usb_config_descriptor config = {
-	.bLenght = USB_DT_CONFIGURATION_SIZE,
+	.bLength = USB_DT_CONFIGURATION_SIZE,
 	.bDescriptorType = USB_DT_CONFIGURATION,
-	.wTotalLenght = 0,
+	.wTotalLength = 0,
 	.bNumInterfaces = 2,
 	.bConfigurationValue = 1,
 	.iConfiguration = 0,
