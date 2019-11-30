@@ -93,10 +93,58 @@ const struct {
 		.bControlInterface = 0,
 		.bSubordinateInterface0 = 1,
 	}
-	
 };
 
+const struct usb_interface_desciptor com_interface = {
+	.bLenght = USB_DT_INTERFACE_SIZE,
+	.bDescriptorType = USB_DT_INTERFACE,
+	.bInterfaceNumber = 0,
+	.bAlternateSetting = 0,
+	.bNumEndpoints = 1,
+	.bInterfaceClass = USB_CLASS_CDC,
+	.bInterfaceSubclass = USB_CDC_SUBCLASS_ACM,
+	.bInterfacePortocol = USB_CDC_PROTOCOL_AT,
+	.bInterface = 0,
+	.endpoint = &notif_endpoint,
+	.extra = &cdc_functional_descriptors,
+	.extralen = sizeof(cdc_functional_descriptors)
+};
 
+const struct usb_interface_desciptor data_interface = {
+	.bLenght = USB_DT_INTERFACE_SIZE,
+	.bDescriptorType = USB_DT_INTERFACE,
+	.bInterfaceNumber = 1,
+	.bAlternateSetting = 0,
+	.bNumEndpoints = 2,
+	.bInterfaceClass = USB_CLASS_DATA,
+	.bInterfaceSubclass = 0,
+	.bInterfacePortocol = 0,
+	.bInterface = 0,
+	.endpoint = data_endpoints
+};
+
+const struct usb_interface interfaces[] = {
+	{
+		.num_altsetting = 1,
+		.altsetting = &com_interface,
+	},
+	{
+		.num_altsetting = 1,
+		.altsetting = data_interface,
+	}
+};
+
+const struct usb_config_descriptor config = {
+	.bLenght = USB_DT_CONFIGURATION_SIZE,
+	.bDescriptorType = USB_DT_CONFIGURATION,
+	.wTotalLenght = 0,
+	.bNumInterfaces = 2,
+	.bConfigurationValue = 1,
+	.iConfiguration = 0,
+	.bmAttributes = 0x80, // bus powered
+	.bMaxPower = 0x32,
+	.interface = interfaces,
+};
 
 int main(void)
 {
