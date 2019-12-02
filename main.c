@@ -177,6 +177,12 @@ void data_rx_handler(usbd_device *device, uint8_t endpoint)
 	char buffer[64];
 	int length = usbd_ep_read_packet(device, 0x01, buffer, 64);
 	
+	if(length)
+	{
+		buffer[0] +=1;
+		while(usbd_ep_write_packet(device, 0x82, buffer, length) == 0);
+	}
+	
 }
 
 void cdcacm_set_config(usbd_device *device, uint16_t wValue)
