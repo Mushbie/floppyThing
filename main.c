@@ -197,6 +197,13 @@ void cdcacm_set_config(usbd_device *device, uint16_t wValue)
 		USB_REQ_TYPE_TYPE | USB_REQ_TYPE_RECIPIENT, cdcacm_request_handler);
 }
 
+void setup_timer()
+{
+	TIM6_PSC |= 0xffff;
+	TIM6_DIER |= 1;
+	
+}
+
 uint8_t control_buffer[128];
 usbd_device *usb_device;
 
