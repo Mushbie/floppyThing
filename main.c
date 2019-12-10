@@ -199,13 +199,37 @@ void cdcacm_set_config(usbd_device *device, uint16_t wValue)
 
 void setup_timer()
 {
-	TIM6_PSC |= 0xffff;
+	rcc_periph_clock_enable(RCC_TIM6);
+	TIM6_PSC |= 4;	// 21MHz at sysclk 168MHz
 	TIM6_DIER |= 1;
+	TIM6_ARR = 0x40ff;	// If I have a timer that can count to 191 I need to start at 64(0x40)
 	
 }
 
 uint8_t control_buffer[128];
 usbd_device *usb_device;
+
+#define CMD_ERROR		0xC0	// 1100 0000
+#define CMD_OVERFLOW	0xC1	// 1100 0001
+
+//	buffer and support variables for outgoing data.
+uint8_t out_buffer[128];
+uint8_t out_position;
+uint8_t	out_count;
+
+void tim6_isr(void)	// Timer overflow handler
+{
+	if(out_position >= 127)
+	{
+		out_position = 0;
+	}
+	else
+	{
+		out_position++;
+	}
+	out_buffer[out_position] = CMD_OVERFLOW;
+	out_count++;
+}
 
 int main(void)
 {
