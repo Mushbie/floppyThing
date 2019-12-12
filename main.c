@@ -209,8 +209,8 @@ void setup_timer()
 uint8_t control_buffer[128];
 usbd_device *usb_device;
 
-#define CMD_ERROR		0xC0	// 1100 0000
-#define CMD_OVERFLOW	0xC1	// 1100 0001
+#define MSG_ERROR		0xC0	// 1100 0000
+#define MSG_OVERFLOW	0xC1	// 1100 0001
 
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
@@ -227,8 +227,24 @@ void tim6_isr(void)	// Timer overflow handler
 	{
 		out_position++;
 	}
-	out_buffer[out_position] = CMD_OVERFLOW;
+	out_buffer[out_position] = MSG_OVERFLOW;
 	out_count++;
+}
+
+void out_buffer_poll()
+{
+	if(out_count > 64)
+	{
+		if(out_position < 64)
+		{
+			usbd_ep_write_packet(device, 0x82, out_buffer, 64);
+		}
+		else
+		{
+			usbd_ep_write_packet(device, 0x82, out_buffer + 64, 64);
+		}
+		out_count -= 64;
+	}
 }
 
 int main(void)
@@ -246,6 +262,7 @@ int main(void)
 
 	while(1)
 	{
+		out_buffer_poll();
 		usbd_poll(usb_device);
 	}
 }
