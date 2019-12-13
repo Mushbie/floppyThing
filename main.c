@@ -209,8 +209,16 @@ void setup_timer()
 uint8_t control_buffer[128];
 usbd_device *usb_device;
 
-#define MSG_ERROR		0xC0	// 1100 0000
-#define MSG_OVERFLOW	0xC1	// 1100 0001
+/*	pc to mcu protocol protoype
+CMD_SELECT_DRIVE drive
+CMD_CHECK_DISK
+CMD_MOTOR on/off
+CMD_READ head track
+CMD_READ_MULTI head track times
+*/
+#define MSG_DONE			0xC0	// 1100 0000
+#define MSG_OVERFLOW		0xC1	// 1100 0001
+#define MSG_INDEX			0xC2	// 1100 0010
 
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
