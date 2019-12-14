@@ -209,21 +209,29 @@ void setup_timer()
 uint8_t control_buffer[128];
 usbd_device *usb_device;
 
-/*	pc to mcu protocol protoype
-CMD_SELECT_DRIVE drive
-CMD_CHECK_DISK
-CMD_MOTOR on/off
-CMD_READ head track
-CMD_READ_MULTI head track times
-*/
+//	pc to mcu protocol
+#define CMD_SELECT_DRIVE	0x01	//cmd drive
+#define CMD_CHECK_DISK		0x02
+#define CMD_MOTOR			0x03	//cmd on/off
+#define CMD_READ 			0x04	//cmd track
+#define CMD_READ_MULTI 		0x05	//cmd track times
+
+//	mcu to pc protocol
 #define MSG_DONE			0xC0	// 1100 0000
 #define MSG_OVERFLOW		0xC1	// 1100 0001
-#define MSG_INDEX			0xC2	// 1100 0010
+#define MSG_INDEX_ON		0xC2	// 1100 0010
+#define MSG_INDEX_OFF		0xC3	// 1100 0011
+#define MSG_NO_DISK			0xC4	// 1100 0100
+#define MSG_DISK_EJECTED	0xC5	// 1100 0101
 
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
 uint8_t out_position;
 uint8_t	out_count;
+
+//	track start with 0 being the outermost track on side 0, and track 1
+//	being the outermost track on side 1
+uint8_t current_track;
 
 void tim6_isr(void)	// Timer overflow handler
 {
