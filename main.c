@@ -224,6 +224,34 @@ usbd_device *usb_device;
 #define MSG_NO_DISK			0xC4	// 1100 0100
 #define MSG_DISK_EJECTED	0xC5	// 1100 0101
 
+//	pin and port definitions
+#define PORT_DENSEL		GPIOH
+#define PIN_DENSEL		GPIO1
+#define PORT_INDEX		GPIOC
+#define PIN_INDEX		GPIO15
+#define PORT_MOTOR1		GPIOC
+#define PIN_MOTOR1		GPIO13
+#define PORT_DRVSEL2	GPIOE
+#define PIN_DRVSEL2		GPIO5
+#define PORT_DRVSEL1	GPIOE
+#define PIN_DRVSEL1		GPIO3
+#define PORT_MOTOR2		GPIOE
+#define PIN_MOTOR2		GPIO1
+#define PORT_DIR		GPIOB
+#define PIN_DIR			GPIO9
+#define PORT_STEP		GPIOB
+#define PIN_STEP		GPIO7
+#define PORT_TRACK0		GPIOB
+#define PIN_TRACK0		GPIO5
+#define PORT_WRTPRO		GPIOB
+#define PIN_WRTPRO		GPIO3
+#define PORT_READDATA	GPIOD
+#define PIN_READDATA	GPIO6
+#define PORT_SIDESEL	GPIOD
+#define PIN_SIDESEL		GPIO4
+#define PORT_DISKCH		GPIOD
+#define PIN_DISKCH		GPIO2
+
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
 uint8_t out_position;
