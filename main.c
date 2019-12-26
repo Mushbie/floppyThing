@@ -2,8 +2,55 @@
 #include <stdlib.h>
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
+#include <libopencm3/stm32/timer.h>
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
+
+//	pc to mcu protocol
+#define CMD_HALT			0x00
+#define CMD_SELECT_DRIVE	0x01	//cmd drive
+#define CMD_CHECK_DISK		0x02
+#define CMD_MOTOR			0x03	//cmd on/off
+#define CMD_READ 			0x04	//cmd track
+#define CMD_READ_MULTI 		0x05	//cmd track times
+#define CMD_HANDSHAKE		0x69
+
+//	mcu to pc protocol
+#define MSG_INVALID_CMD		0xC0	// 1100 0000
+#define MSG_DONE			0xC1	// 1100 0001
+#define MSG_OVERFLOW		0xC2	// 1100 0010
+#define MSG_INDEX_ON		0xC3	// 1100 0011
+#define MSG_INDEX_OFF		0xC4	// 1100 0100
+#define MSG_NO_DISK			0xC5	// 1100 0101
+#define MSG_DISK_EJECTED	0xC6	// 1100 0110
+
+//	pin and port definitions
+#define PORT_DENSEL		GPIOH
+#define PIN_DENSEL		GPIO1
+#define PORT_INDEX		GPIOC
+#define PIN_INDEX		GPIO15
+#define PORT_MOTOR1		GPIOC
+#define PIN_MOTOR1		GPIO13
+#define PORT_DRVSEL2	GPIOE
+#define PIN_DRVSEL2		GPIO5
+#define PORT_DRVSEL1	GPIOE
+#define PIN_DRVSEL1		GPIO3
+#define PORT_MOTOR2		GPIOE
+#define PIN_MOTOR2		GPIO1
+#define PORT_DIR		GPIOB
+#define PIN_DIR			GPIO9
+#define PORT_STEP		GPIOB
+#define PIN_STEP		GPIO7
+#define PORT_TRACK0		GPIOB
+#define PIN_TRACK0		GPIO5
+#define PORT_WRTPRO		GPIOB
+#define PIN_WRTPRO		GPIO3
+#define PORT_READDATA	GPIOD
+#define PIN_READDATA	GPIO6
+#define PORT_SIDESEL	GPIOD
+#define PIN_SIDESEL		GPIO4
+#define PORT_DISKCH		GPIOD
+#define PIN_DISKCH		GPIO2
 
 const struct usb_device_descriptor device_desc = {
 	.bLength = USB_DT_DEVICE_SIZE,
@@ -174,13 +221,32 @@ void data_rx_handler(usbd_device *device, uint8_t endpoint)
 {
 	(void)endpoint;	// tell the computer this is not used
 	
-	char buffer[64];
-	int length = usbd_ep_read_packet(device, 0x01, buffer, 64);
+	char buffer_in[64];
+	char buffer_out[64];
+	int length = usbd_ep_read_packet(device, 0x01, buffer_in, 64);
 	
 	if(length)
 	{
-		buffer[0] +=1;
-		while(usbd_ep_write_packet(device, 0x82, buffer, length) == 0);
+		switch(buffer_in[0])
+		{
+			case CMD_HANDSHAKE:
+				buffer_out[0] = 'F';
+				buffer_out[1] = 'L';
+				buffer_out[2] = 'O';
+				buffer_out[3] = 'P';
+				buffer_out[4] = 'P';
+				buffer_out[5] = 'Y';
+				buffer_out[6] = 'T';
+				buffer_out[7] = 'H';
+				buffer_out[8] = 'I';
+				buffer_out[9] = 'N';
+				buffer_out[10] = 'G';
+				length = 11;
+				break;
+			default:
+				break;
+		}
+		while(usbd_ep_write_packet(device, 0x82, buffer_out, length) == 0);
 	}
 	
 }
@@ -209,48 +275,7 @@ void setup_timer()
 uint8_t control_buffer[128];
 usbd_device *usb_device;
 
-//	pc to mcu protocol
-#define CMD_SELECT_DRIVE	0x01	//cmd drive
-#define CMD_CHECK_DISK		0x02
-#define CMD_MOTOR			0x03	//cmd on/off
-#define CMD_READ 			0x04	//cmd track
-#define CMD_READ_MULTI 		0x05	//cmd track times
 
-//	mcu to pc protocol
-#define MSG_DONE			0xC0	// 1100 0000
-#define MSG_OVERFLOW		0xC1	// 1100 0001
-#define MSG_INDEX_ON		0xC2	// 1100 0010
-#define MSG_INDEX_OFF		0xC3	// 1100 0011
-#define MSG_NO_DISK			0xC4	// 1100 0100
-#define MSG_DISK_EJECTED	0xC5	// 1100 0101
-
-//	pin and port definitions
-#define PORT_DENSEL		GPIOH
-#define PIN_DENSEL		GPIO1
-#define PORT_INDEX		GPIOC
-#define PIN_INDEX		GPIO15
-#define PORT_MOTOR1		GPIOC
-#define PIN_MOTOR1		GPIO13
-#define PORT_DRVSEL2	GPIOE
-#define PIN_DRVSEL2		GPIO5
-#define PORT_DRVSEL1	GPIOE
-#define PIN_DRVSEL1		GPIO3
-#define PORT_MOTOR2		GPIOE
-#define PIN_MOTOR2		GPIO1
-#define PORT_DIR		GPIOB
-#define PIN_DIR			GPIO9
-#define PORT_STEP		GPIOB
-#define PIN_STEP		GPIO7
-#define PORT_TRACK0		GPIOB
-#define PIN_TRACK0		GPIO5
-#define PORT_WRTPRO		GPIOB
-#define PIN_WRTPRO		GPIO3
-#define PORT_READDATA	GPIOD
-#define PIN_READDATA	GPIO6
-#define PORT_SIDESEL	GPIOD
-#define PIN_SIDESEL		GPIO4
-#define PORT_DISKCH		GPIOD
-#define PIN_DISKCH		GPIO2
 
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
@@ -281,15 +306,20 @@ void out_buffer_poll()
 	{
 		if(out_position < 64)
 		{
-			usbd_ep_write_packet(device, 0x82, out_buffer, 64);
+			usbd_ep_write_packet(usb_device, 0x82, out_buffer, 64);
 		}
 		else
 		{
-			usbd_ep_write_packet(device, 0x82, out_buffer + 64, 64);
+			usbd_ep_write_packet(usb_device, 0x82, out_buffer + 64, 64);
 		}
 		out_count -= 64;
 	}
 }
+
+/*void setup_io()
+{
+	
+}*/
 
 int main(void)
 {

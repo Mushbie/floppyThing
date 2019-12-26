@@ -11,7 +11,7 @@ OBJS = main.o
 DEPS = 
 
 ARCH_FLAGS	= -mthumb -mcpu=cortex-m4 -ffunction-sections -fdata-sections -mfloat-abi=hard -mfpu=fpv4-sp-d16
-CFLAGS		= -Os -g -Wextra -Wshadow -Wimplicit-function-declaration -Wredundant-decls -Wmissing-prototypes -Wstrict-prototypes -fno-common $(ARCH_FLAGS) -MD -Wall -Wundef -I$(INC) -DSTM32F4
+CFLAGS		= -Os -g -Wextra -Wshadow -Wimplicit-function-declaration -Wredundant-decls -fno-common $(ARCH_FLAGS) -MD -Wall -Wundef -I$(INC) -DSTM32F4
 LDFLAGS		= --static -nostartfiles -L$(LIB_DIR) -T$(LD_SCRIPT) $(ARCH_FLAGS) -Wl,--gc-sections -lopencm3_stm32f4 -Wl,--start-group -lc -lgcc -lnosys -Wl,--end-group
 
 $(TARGET).hex: $(TARGET).elf
