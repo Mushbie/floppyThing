@@ -316,10 +316,40 @@ void out_buffer_poll()
 	}
 }
 
-/*void setup_io()
+void setup_io()
 {
+	// start the gpio clocks
+	rcc_periph_clock_enable(RCC_GPIOB);
+	rcc_periph_clock_enable(RCC_GPIOC);
+	rcc_periph_clock_enable(RCC_GPIOD);
+	rcc_periph_clock_enable(RCC_GPIOE);
+	rcc_periph_clock_enable(RCC_GPIOH);
 	
-}*/
+	// setup the outputs
+	gpio_mode_setup(PORT_DENSEL, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DENSEL);
+	gpio_set_output_options(PORT_DENSEL, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DENSEL);
+	gpio_mode_setup(PORT_MOTOR1, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_MOTOR1);
+	gpio_set_output_options(PORT_MOTOR1, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_MOTOR1);
+	gpio_mode_setup(PORT_MOTOR2, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_MOTOR2);
+	gpio_set_output_options(PORT_MOTOR2, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_MOTOR2);
+	gpio_mode_setup(PORT_DRVSEL1, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DRVSEL1);
+	gpio_set_output_options(PORT_DRVSEL1, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DRVSEL1);
+	gpio_mode_setup(PORT_DRVSEL2, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DRVSEL2);
+	gpio_set_output_options(PORT_DRVSEL2, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DRVSEL2);
+	gpio_mode_setup(PORT_DIR, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DIR);
+	gpio_set_output_options(PORT_DIR, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DIR);
+	gpio_mode_setup(PORT_STEP, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_STEP);
+	gpio_set_output_options(PORT_STEP, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_STEP);
+	gpio_mode_setup(PORT_SIDESEL, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_SIDESEL);
+	gpio_set_output_options(PORT_SIDESEL, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_SIDESEL);
+	
+	// setup the inputs
+	gpio_mode_setup(PORT_INDEX, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_INDEX);
+	gpio_mode_setup(PORT_TRACK0, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_TRACK0);
+	gpio_mode_setup(PORT_WRTPRO, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_WRTPRO);
+	gpio_mode_setup(PORT_READDATA, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_READDATA);
+	gpio_mode_setup(PORT_DISKCH, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_DISKCH);
+}
 
 int main(void)
 {
@@ -333,6 +363,8 @@ int main(void)
 		usb_strings, 3, control_buffer, sizeof(control_buffer));
 		
 	usbd_register_set_config_callback(usb_device, cdcacm_set_config);
+	
+	setup_io();
 
 	while(1)
 	{
