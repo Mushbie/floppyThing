@@ -56,6 +56,18 @@
 #define PORT_DISKCH		GPIOD
 #define PIN_DISKCH		GPIO2
 
+// global variables go here
+uint8_t control_buffer[128];
+usbd_device *usb_device;
+
+//	buffer and support variables for outgoing data.
+uint8_t out_buffer[128];
+uint8_t out_position;
+uint8_t	out_count;
+
+//	track start with 0 being the outermost track on side 0, and track 1
+//	being the outermost track on side 1
+uint8_t current_track;
 
 void data_rx_handler(usbd_device *device, uint8_t endpoint)
 {
@@ -111,20 +123,6 @@ void setup_timer()
 	TIM6_ARR = 0x40ff;	// If I have a timer that can count to 191 I need to start at 64(0x40)
 	
 }
-
-uint8_t control_buffer[128];
-usbd_device *usb_device;
-
-
-
-//	buffer and support variables for outgoing data.
-uint8_t out_buffer[128];
-uint8_t out_position;
-uint8_t	out_count;
-
-//	track start with 0 being the outermost track on side 0, and track 1
-//	being the outermost track on side 1
-uint8_t current_track;
 
 void tim6_isr(void)	// Timer overflow handler
 {
