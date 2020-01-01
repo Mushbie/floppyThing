@@ -59,7 +59,8 @@
 // global variables go here
 uint8_t control_buffer[128];
 usbd_device *usb_device;
-uint32_t system_time = 0;
+volatile uint32_t system_time = 0;
+uint32_t time;
 
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
@@ -209,6 +210,22 @@ int main(void)
 	usbd_register_set_config_callback(usb_device, cdcacm_set_config);
 	
 	setup_io();
+	
+	// setup systick
+	systick_set_reload(16800);	// 0.1mS interval
+	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
+	systick_counter_enable();
+	systick_interrupt_enable();
+
+	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
+	
+	while(1)
+	{
+		gpio_toggle(GPIOD, GPIO12);
+		time = system_time;
+		while((system_time - time) < 1000)
+		{}
+	}
 
 	while(1)
 	{
