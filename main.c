@@ -59,6 +59,7 @@
 // global variables go here
 uint8_t control_buffer[128];
 usbd_device *usb_device;
+uint32_t system_time = 0;
 
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
@@ -68,6 +69,11 @@ uint8_t	out_count;
 //	track start with 0 being the outermost track on side 0, and track 1
 //	being the outermost track on side 1
 uint8_t current_track;
+
+void sys_tick_handler(void)
+{
+	system_time++;
+}
 
 void data_rx_handler(usbd_device *device, uint8_t endpoint)
 {
