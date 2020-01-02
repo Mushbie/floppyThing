@@ -62,6 +62,11 @@ usbd_device *usb_device;
 volatile uint32_t system_time = 0;
 uint32_t time;
 
+uint8_t next_event = 0;
+uint8_t event_count = 0;
+uint32_t event_times[16];
+uint8_t events[16];
+
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
 uint8_t out_position;
@@ -219,11 +224,16 @@ int main(void)
 
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
 	
+	gpio_set(PORT_DIR, PIN_DIR);
 	while(1)
 	{
-		gpio_toggle(GPIOD, GPIO12);
+		gpio_set(PORT_STEP, PIN_STEP);
 		time = system_time;
-		while((system_time - time) < 1000)
+		while((system_time - time) < 15)
+		{}
+		gpio_clear(PORT_STEP, PIN_STEP);
+		time = system_time;
+		while((system_time - time) < 15)
 		{}
 	}
 
