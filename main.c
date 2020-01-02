@@ -225,13 +225,17 @@ int main(void)
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
 	
 	gpio_set(PORT_DIR, PIN_DIR);
+	//gpio_set(PORT_MOTOR2, PIN_MOTOR2);
+	gpio_set(PORT_DRVSEL1, PIN_DRVSEL2);	// drive 0 & 1 are swapped because IBM was stupid
 	while(1)
 	{
 		gpio_set(PORT_STEP, PIN_STEP);
+		gpio_toggle(GPIOD, GPIO12);
 		time = system_time;
 		while((system_time - time) < 15)
 		{}
 		gpio_clear(PORT_STEP, PIN_STEP);
+		gpio_toggle(GPIOD, GPIO12);
 		time = system_time;
 		while((system_time - time) < 15)
 		{}
