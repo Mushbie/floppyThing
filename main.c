@@ -12,11 +12,12 @@
 
 //	pc to mcu protocol
 #define CMD_HALT			0x00
-#define CMD_SELECT_DRIVE	0x01	//cmd drive
-#define CMD_CHECK_DISK		0x02
-#define CMD_MOTOR			0x03	//cmd on/off
-#define CMD_READ 			0x04	//cmd track
-#define CMD_READ_MULTI 		0x05	//cmd track times
+#define CMD_SELECT_DRIVE	0x01	// cmd drive
+#define CMD_TRACK			0x02	// cmd track
+#define CMD_CHECK_DISK		0x03	// cmd
+#define CMD_MOTOR			0x04	// cmd on/off
+#define CMD_READ 			0x05	// cmd
+#define CMD_READ_MULTI 		0x06	// cmd times
 #define CMD_HANDSHAKE		0x69
 
 //	mcu to pc protocol
@@ -27,6 +28,9 @@
 #define MSG_INDEX_OFF		0xC4	// 1100 0100
 #define MSG_NO_DISK			0xC5	// 1100 0101
 #define MSG_DISK_EJECTED	0xC6	// 1100 0110
+
+#define EVENT_STEP_TICK		0x01
+#define EVENT_STEP_TOCK		0x02
 
 //	pin and port definitions
 #define PORT_DENSEL		GPIOH
@@ -74,11 +78,34 @@ uint8_t	out_count;
 
 //	track start with 0 being the outermost track on side 0, and track 1
 //	being the outermost track on side 1
-uint8_t current_track;
+uint8_t current_track = 0;
+uint8_t command = 0;
+uint8_t parameter = 0;
 
 void sys_tick_handler(void)
 {
 	system_time++;
+}
+
+void add_event(uint8_t event, uint32_t delay)
+{
+	
+}
+
+void track(uint8_t track)
+{
+	if(track == 0)
+	{
+		if(gpio_get(PORT_TRACK0, PIN_TRACK0))
+		{
+			gpio_clear(PORT_DIR, PIN_DIR);
+			
+		}
+		else
+		{
+			current_track = 0;
+		}
+	}
 }
 
 void data_rx_handler(usbd_device *device, uint8_t endpoint)
@@ -226,7 +253,7 @@ int main(void)
 	
 	gpio_set(PORT_DIR, PIN_DIR);
 	//gpio_set(PORT_MOTOR2, PIN_MOTOR2);
-	gpio_set(PORT_DRVSEL1, PIN_DRVSEL2);	// drive 0 & 1 are swapped because IBM was stupid
+	gpio_set(PORT_DRVSEL2, PIN_DRVSEL2);	// drive 0 & 1 are swapped because IBM was stupid
 	while(1)
 	{
 		gpio_set(PORT_STEP, PIN_STEP);
