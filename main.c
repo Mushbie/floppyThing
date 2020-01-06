@@ -89,7 +89,17 @@ void sys_tick_handler(void)
 
 void add_event(uint8_t event, uint32_t delay)
 {
-	
+	uint8_t pos = next_event + event_count;
+
+	if(event_count != 0)
+	{
+		if(pos > 15)
+		{
+			pos -= 16;
+			//event_times[
+			events[pos] = event;
+		}
+	}
 }
 
 void track(uint8_t track)
