@@ -90,31 +90,46 @@ void sys_tick_handler(void)
 void add_event(uint8_t event, uint32_t delay)
 {
 	uint8_t pos = next_event + event_count;
-
-	if(event_count != 0)
+	uint32_t target_time = system_time + delay;	// this might wrap around, but we want that
+	
+	if(pos > 15)
 	{
-		if(pos > 15)
-		{
-			pos -= 16;
-			//event_times[
-			events[pos] = event;
-		}
+		pos -= 16;
 	}
+	event_times[pos] = target_time;
+	events[pos] = event;
+	event_count++;
 }
 
 void track(uint8_t track)
 {
-	if(track == 0)
+	uint8_t cylinder = track & 0xFE;	// remove the side
+	uint8_t side = track & 0x01;		// keep only the side
+	
+	if(side)
+	{
+		gpio_clear(PORT_SIDESEL, PIN_SIDESEL);
+	}
+	else
+	{
+		gpio_set(PORT_SIDESEL, PIN_SIDESEL);
+	}
+	if(cylinder == 0)
 	{
 		if(gpio_get(PORT_TRACK0, PIN_TRACK0))
 		{
 			gpio_clear(PORT_DIR, PIN_DIR);
-			
+			gpio_clear(PORT_STEP, PIN_STEP);
+			add_event(EVENT_STEP_TOCK, 5);
 		}
 		else
 		{
-			current_track = 0;
+			current_track = track;
 		}
+	}
+	else
+	{
+		
 	}
 }
 
