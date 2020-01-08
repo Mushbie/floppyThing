@@ -78,7 +78,8 @@ uint8_t	out_count;
 
 //	track start with 0 being the outermost track on side 0, and track 1
 //	being the outermost track on side 1
-uint8_t current_track = 0;
+uint8_t current_cylinder = 0;
+uint8_t current_side = 0;
 uint8_t command = 0;
 uint8_t parameter = 0;
 
@@ -124,7 +125,7 @@ void track(uint8_t track)
 		}
 		else
 		{
-			current_track = track;
+			current_cylinder = cylinder;
 		}
 	}
 	else
