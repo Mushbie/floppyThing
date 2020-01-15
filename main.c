@@ -13,11 +13,12 @@
 //	pc to mcu protocol
 #define CMD_HALT			0x00
 #define CMD_SELECT_DRIVE	0x01	// cmd drive
-#define CMD_TRACK			0x02	// cmd track
-#define CMD_CHECK_DISK		0x03	// cmd
-#define CMD_MOTOR			0x04	// cmd on/off
-#define CMD_READ 			0x05	// cmd
-#define CMD_READ_MULTI 		0x06	// cmd times
+#define CMD_CYLINDER		0x02	// cmd cylinder
+#define CMD_HEAD			0x03	// cmd head
+#define CMD_CHECK_DISK		0x04	// cmd
+#define CMD_MOTOR			0x05	// cmd on/off
+#define CMD_READ 			0x06	// cmd
+#define CMD_READ_MULTI 		0x07	// cmd times
 #define CMD_HANDSHAKE		0x69
 
 //	mcu to pc protocol
@@ -79,7 +80,7 @@ uint8_t	out_count;
 //	track start with 0 being the outermost track on side 0, and track 1
 //	being the outermost track on side 1
 uint8_t current_cylinder = 0;
-uint8_t current_side = 0;
+uint8_t current_head = 0;
 uint8_t command = 0;
 uint8_t parameter = 0;
 
@@ -88,7 +89,7 @@ void sys_tick_handler(void)
 	system_time++;
 }
 
-void add_event(uint8_t event, uint32_t delay)
+void event_add(uint8_t event, uint32_t delay)
 {
 	uint8_t pos = next_event + event_count;
 	uint32_t target_time = system_time + delay;	// this might wrap around, but we want that
@@ -102,12 +103,49 @@ void add_event(uint8_t event, uint32_t delay)
 	event_count++;
 }
 
-void track(uint8_t track)
+void drive(uint8_t drive)
 {
-	uint8_t cylinder = track & 0xFE;	// remove the side
-	uint8_t side = track & 0x01;		// keep only the side
-	
-	if(side)
+	gpio_set(PORT_DRVSEL1, PIN_DRVSEL1);
+	gpio_set(PORT_DRVSEL2, PIN_DRVSEL2);
+	if(drive == 1)
+	{
+		gpio_clear(PORT_DRVSEL1, PIN_DRVSEL1);
+	}
+	else if(drive == 2)
+	{
+		gpio_clear(PORT_DRVSEL2, PIN_DRVSEL2);
+	}
+}
+
+void cylinder(uint8_t cylinder)
+{	
+	if(cylinder == 0)
+	{
+		if(gpio_get(PORT_TRACK0, PIN_TRACK0))
+		{
+			gpio_set(PORT_DIR, PIN_DIR);
+			gpio_clear(PORT_STEP, PIN_STEP);
+			event_add(EVENT_STEP_TOCK, 5);
+		}
+		else
+		{
+			current_cylinder = 0;
+		}
+	}
+	else
+	{
+		if(cylinder > current_cylinder)
+		{
+			gpio_clear(PORT_DIR, PIN_DIR);
+		}
+		gpio_clear(PORT_STEP, PIN_STEP);
+		event_add(EVENT_STEP_TOCK, 5);
+	}
+}
+
+void head(uint8_t head)
+{
+	if(head)
 	{
 		gpio_clear(PORT_SIDESEL, PIN_SIDESEL);
 	}
@@ -115,23 +153,11 @@ void track(uint8_t track)
 	{
 		gpio_set(PORT_SIDESEL, PIN_SIDESEL);
 	}
-	if(cylinder == 0)
-	{
-		if(gpio_get(PORT_TRACK0, PIN_TRACK0))
-		{
-			gpio_clear(PORT_DIR, PIN_DIR);
-			gpio_clear(PORT_STEP, PIN_STEP);
-			add_event(EVENT_STEP_TOCK, 5);
-		}
-		else
-		{
-			current_cylinder = cylinder;
-		}
-	}
-	else
-	{
-		
-	}
+}
+
+void event_poll()
+{
+	
 }
 
 void data_rx_handler(usbd_device *device, uint8_t endpoint)
@@ -229,20 +255,28 @@ void setup_io()
 	rcc_periph_clock_enable(RCC_GPIOH);
 	
 	// setup the outputs
+	gpio_clear(PORT_DENSEL, PIN_DENSEL);	// select HD as default
 	gpio_mode_setup(PORT_DENSEL, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DENSEL);
 	gpio_set_output_options(PORT_DENSEL, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DENSEL);
+	gpio_set(PORT_MOTOR1, PIN_MOTOR1);
 	gpio_mode_setup(PORT_MOTOR1, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_MOTOR1);
 	gpio_set_output_options(PORT_MOTOR1, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_MOTOR1);
+	gpio_set(PORT_MOTOR2, PIN_MOTOR2);
 	gpio_mode_setup(PORT_MOTOR2, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_MOTOR2);
 	gpio_set_output_options(PORT_MOTOR2, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_MOTOR2);
+	gpio_set(PORT_DRVSEL1, PIN_DRVSEL1);
 	gpio_mode_setup(PORT_DRVSEL1, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DRVSEL1);
 	gpio_set_output_options(PORT_DRVSEL1, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DRVSEL1);
+	gpio_set(PORT_DRVSEL2, PIN_DRVSEL2);
 	gpio_mode_setup(PORT_DRVSEL2, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DRVSEL2);
 	gpio_set_output_options(PORT_DRVSEL2, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DRVSEL2);
+	gpio_set(PORT_DIR, PIN_DIR);
 	gpio_mode_setup(PORT_DIR, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_DIR);
 	gpio_set_output_options(PORT_DIR, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_DIR);
+	gpio_set(PORT_STEP, PIN_STEP);
 	gpio_mode_setup(PORT_STEP, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_STEP);
 	gpio_set_output_options(PORT_STEP, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_STEP);
+	gpio_set(PORT_SIDESEL, PIN_SIDESEL);
 	gpio_mode_setup(PORT_SIDESEL, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, PIN_SIDESEL);
 	gpio_set_output_options(PORT_SIDESEL, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_SIDESEL);
 	
@@ -276,21 +310,21 @@ int main(void)
 	systick_interrupt_enable();
 
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
-	
-	gpio_set(PORT_DIR, PIN_DIR);
-	//gpio_set(PORT_MOTOR2, PIN_MOTOR2);
-	gpio_set(PORT_DRVSEL2, PIN_DRVSEL2);	// drive 0 & 1 are swapped because IBM was stupid
+
+	//gpio_clear(PORT_DIR, PIN_DIR);
+	//gpio_clear(PORT_MOTOR1, PIN_MOTOR1);
+	//gpio_clear(PORT_DRVSEL1, PIN_DRVSEL1);
 	while(1)
 	{
-		gpio_set(PORT_STEP, PIN_STEP);
-		gpio_toggle(GPIOD, GPIO12);
-		time = system_time;
-		while((system_time - time) < 15)
-		{}
 		gpio_clear(PORT_STEP, PIN_STEP);
 		gpio_toggle(GPIOD, GPIO12);
 		time = system_time;
-		while((system_time - time) < 15)
+		while((system_time - time) < 5)
+		{}
+		gpio_set(PORT_STEP, PIN_STEP);
+		gpio_toggle(GPIOD, GPIO12);
+		time = system_time;
+		while((system_time - time) < 25)
 		{}
 	}
 
