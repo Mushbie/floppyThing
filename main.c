@@ -30,9 +30,9 @@
 #define MSG_NO_DISK			0xC5	// 1100 0101
 #define MSG_DISK_EJECTED	0xC6	// 1100 0110
 
-#define EVENT_DONE			0x00
 #define EVENT_STEP_TICK		0x01
 #define EVENT_STEP_TOCK		0x02
+#define EVENT_STEP_DONE		0x03
 
 //	pin and port definitions
 #define PORT_DENSEL		GPIOH
@@ -80,6 +80,7 @@ uint8_t	out_count;
 //	track start with 0 being the outermost track on side 0, and track 1
 //	being the outermost track on side 1
 uint8_t current_cylinder = 0;
+uint8_t	target_cylinder = 0;
 uint8_t current_head = 0;
 uint8_t current_dir = 0;	// 0 is down and 1 is up
 uint8_t command = 0;
@@ -119,7 +120,8 @@ void drive(uint8_t drive)
 }
 
 void cylinder(uint8_t cylinder)
-{	
+{
+	target_cylinder = cylinder;
 	if(cylinder == 0)
 	{
 		if(gpio_get(PORT_TRACK0, PIN_TRACK0))
@@ -163,6 +165,8 @@ void head(uint8_t head)
 	}
 }
 
+
+
 void event_poll()
 {
 	uint32_t time = system_time;
@@ -185,7 +189,19 @@ void event_poll()
 				{
 					current_cylinder--;
 				}
-				if(
+				if(current_cylinder == target_cylinder)
+				{
+					event_add(EVENT_STEP_DONE, 200);
+				}
+				else
+				{
+					event_add(EVENT_STEP_TICK, 25);
+				}
+				break;
+			case EVENT_STEP_DONE:
+				gpio_set(PORT_DIR, PIN_DIR);
+				// send a done message to the host
+				break;
 		}
 		
 	}
@@ -346,5 +362,6 @@ int main(void)
 	{
 		out_buffer_poll();
 		usbd_poll(usb_device);
+		event_poll();
 	}
 }
