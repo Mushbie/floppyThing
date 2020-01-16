@@ -30,6 +30,7 @@
 #define MSG_NO_DISK			0xC5	// 1100 0101
 #define MSG_DISK_EJECTED	0xC6	// 1100 0110
 
+#define EVENT_DONE			0x00
 #define EVENT_STEP_TICK		0x01
 #define EVENT_STEP_TOCK		0x02
 
@@ -65,7 +66,6 @@
 uint8_t control_buffer[128];
 usbd_device *usb_device;
 volatile uint32_t system_time = 0;
-uint32_t time;
 
 uint8_t next_event = 0;
 uint8_t event_count = 0;
@@ -81,6 +81,7 @@ uint8_t	out_count;
 //	being the outermost track on side 1
 uint8_t current_cylinder = 0;
 uint8_t current_head = 0;
+uint8_t current_dir = 0;	// 0 is down and 1 is up
 uint8_t command = 0;
 uint8_t parameter = 0;
 
@@ -124,6 +125,7 @@ void cylinder(uint8_t cylinder)
 		if(gpio_get(PORT_TRACK0, PIN_TRACK0))
 		{
 			gpio_set(PORT_DIR, PIN_DIR);
+			current_dir = 0;
 			gpio_clear(PORT_STEP, PIN_STEP);
 			event_add(EVENT_STEP_TOCK, 5);
 		}
@@ -137,6 +139,12 @@ void cylinder(uint8_t cylinder)
 		if(cylinder > current_cylinder)
 		{
 			gpio_clear(PORT_DIR, PIN_DIR);
+			current_dir = 1;
+		}
+		else
+		{
+			gpio_set(PORT_DIR, PIN_DIR);
+			current_dir = 0;
 		}
 		gpio_clear(PORT_STEP, PIN_STEP);
 		event_add(EVENT_STEP_TOCK, 5);
@@ -157,7 +165,30 @@ void head(uint8_t head)
 
 void event_poll()
 {
+	uint32_t time = system_time;
 	
+	if((time >= event_times[next_event]) && ((time - event_times[next_event]) < 1000))
+	{
+		switch(events[next_event])
+		{
+			case EVENT_STEP_TICK:
+				gpio_clear(PORT_STEP, PIN_STEP);
+				event_add(EVENT_STEP_TOCK, 5);
+				break;
+			case EVENT_STEP_TOCK:
+				gpio_set(PORT_STEP, PIN_STEP);
+				if(current_dir)
+				{
+					current_cylinder++;
+				}
+				else
+				{
+					current_cylinder--;
+				}
+				if(
+		}
+		
+	}
 }
 
 void data_rx_handler(usbd_device *device, uint8_t endpoint)
@@ -310,23 +341,6 @@ int main(void)
 	systick_interrupt_enable();
 
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
-
-	//gpio_clear(PORT_DIR, PIN_DIR);
-	//gpio_clear(PORT_MOTOR1, PIN_MOTOR1);
-	//gpio_clear(PORT_DRVSEL1, PIN_DRVSEL1);
-	while(1)
-	{
-		gpio_clear(PORT_STEP, PIN_STEP);
-		gpio_toggle(GPIOD, GPIO12);
-		time = system_time;
-		while((system_time - time) < 5)
-		{}
-		gpio_set(PORT_STEP, PIN_STEP);
-		gpio_toggle(GPIOD, GPIO12);
-		time = system_time;
-		while((system_time - time) < 25)
-		{}
-	}
 
 	while(1)
 	{
