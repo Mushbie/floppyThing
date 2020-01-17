@@ -33,6 +33,7 @@
 #define EVENT_STEP_TICK		0x01
 #define EVENT_STEP_TOCK		0x02
 #define EVENT_STEP_DONE		0x03
+#define EVENT_MOTOR_READY	0x04
 
 //	pin and port definitions
 #define PORT_DENSEL		GPIOH
@@ -66,6 +67,7 @@
 uint8_t control_buffer[128];
 usbd_device *usb_device;
 volatile uint32_t system_time = 0;
+uint32_t temp_time = 0;
 
 uint8_t next_event = 0;
 uint8_t event_count = 0;
@@ -83,6 +85,7 @@ uint8_t current_cylinder = 0;
 uint8_t	target_cylinder = 0;
 uint8_t current_head = 0;
 uint8_t current_dir = 0;	// 0 is down and 1 is up
+uint8_t current_drive = 0;
 uint8_t command = 0;
 uint8_t parameter = 0;
 
@@ -107,6 +110,7 @@ void event_add(uint8_t event, uint32_t delay)
 
 void drive(uint8_t drive)
 {
+	current_drive = drive;
 	gpio_set(PORT_DRVSEL1, PIN_DRVSEL1);
 	gpio_set(PORT_DRVSEL2, PIN_DRVSEL2);
 	if(drive == 1)
@@ -165,13 +169,45 @@ void head(uint8_t head)
 	}
 }
 
+void check_disk()
+{
+	
+}
+
+void motor(uint8_t state)
+{
+	if(current_drive == 1)
+	{
+		if(state)
+		{
+			gpio_clear(PORT_MOTOR1, PIN_MOTOR1);
+			event_add(EVENT_MOTOR_READY, 10000);
+		}
+		else
+		{
+			gpio_set(PORT_MOTOR1, PIN_MOTOR1);
+		}
+	}
+	if(current_drive == 2)
+	{
+		if(state)
+		{
+			gpio_clear(PORT_MOTOR2, PIN_MOTOR2);
+			event_add(EVENT_MOTOR_READY, 10000);
+		}
+		else
+		{
+			gpio_set(PORT_MOTOR2, PIN_MOTOR2);
+		}
+	}
+}
 
 
 void event_poll()
 {
 	uint32_t time = system_time;
 	
-	if((time >= event_times[next_event]) && ((time - event_times[next_event]) < 1000))
+	if((time >= event_times[next_event]) )//&& ((time - event_times[next_event]) < 1000))
 	{
 		switch(events[next_event])
 		{
@@ -180,7 +216,17 @@ void event_poll()
 				event_add(EVENT_STEP_TOCK, 5);
 				break;
 			case EVENT_STEP_TOCK:
+				gpio_set(GPIOD, GPIO12);
 				gpio_set(PORT_STEP, PIN_STEP);
+				if(target_cylinder == 0)
+				{
+					if(!gpio_get(PORT_TRACK0, PIN_TRACK0))
+					{
+						current_cylinder = 0;
+						event_add(EVENT_STEP_DONE, 200);
+						break;
+					}
+				}
 				if(current_dir)
 				{
 					current_cylinder++;
@@ -357,6 +403,18 @@ int main(void)
 	systick_interrupt_enable();
 
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
+	
+	drive(1);
+	temp_time = 1000 + system_time;
+	while(system_time < temp_time)
+	{
+	}
+	cylinder(0);
+	
+	while(1)
+	{
+		event_poll();
+	}
 
 	while(1)
 	{
