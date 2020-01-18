@@ -249,7 +249,12 @@ void event_poll()
 				// send a done message to the host
 				break;
 		}
-		
+		next_event++;
+		if(next_event > 15)
+		{
+			next_event = 0;
+		}
+		event_count--;
 	}
 }
 
