@@ -81,7 +81,7 @@ uint8_t	out_count;
 
 //	track start with 0 being the outermost track on side 0, and track 1
 //	being the outermost track on side 1
-uint8_t current_cylinder = 0;
+uint8_t current_cylinder = 255;
 uint8_t	target_cylinder = 0;
 uint8_t current_head = 0;
 uint8_t current_dir = 0;	// 0 is down and 1 is up
@@ -133,7 +133,7 @@ void cylinder(uint8_t cylinder)
 			gpio_set(PORT_DIR, PIN_DIR);
 			current_dir = 0;
 			gpio_clear(PORT_STEP, PIN_STEP);
-			event_add(EVENT_STEP_TOCK, 5);
+			event_add(EVENT_STEP_TOCK, 30);
 		}
 		else
 		{
@@ -153,7 +153,7 @@ void cylinder(uint8_t cylinder)
 			current_dir = 0;
 		}
 		gpio_clear(PORT_STEP, PIN_STEP);
-		event_add(EVENT_STEP_TOCK, 5);
+		event_add(EVENT_STEP_TOCK, 30);
 	}
 }
 
@@ -213,14 +213,14 @@ void event_poll()
 		{
 			case EVENT_STEP_TICK:
 				gpio_clear(PORT_STEP, PIN_STEP);
-				event_add(EVENT_STEP_TOCK, 5);
+				event_add(EVENT_STEP_TOCK, 30);
 				break;
 			case EVENT_STEP_TOCK:
-				gpio_set(GPIOD, GPIO12);
+				//gpio_set(GPIOD, GPIO12);
 				gpio_set(PORT_STEP, PIN_STEP);
 				if(target_cylinder == 0)
 				{
-					if(!gpio_get(PORT_TRACK0, PIN_TRACK0))
+					if(gpio_get(PORT_TRACK0, PIN_TRACK0) == 0)
 					{
 						current_cylinder = 0;
 						event_add(EVENT_STEP_DONE, 200);
@@ -241,7 +241,7 @@ void event_poll()
 				}
 				else
 				{
-					event_add(EVENT_STEP_TICK, 25);
+					event_add(EVENT_STEP_TICK, 30);
 				}
 				break;
 			case EVENT_STEP_DONE:
@@ -379,11 +379,11 @@ void setup_io()
 	gpio_set_output_options(PORT_SIDESEL, GPIO_OTYPE_OD, GPIO_OSPEED_2MHZ, PIN_SIDESEL);
 	
 	// setup the inputs
-	gpio_mode_setup(PORT_INDEX, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_INDEX);
-	gpio_mode_setup(PORT_TRACK0, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_TRACK0);
-	gpio_mode_setup(PORT_WRTPRO, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_WRTPRO);
-	gpio_mode_setup(PORT_READDATA, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_READDATA);
-	gpio_mode_setup(PORT_DISKCH, GPIO_MODE_INPUT, GPIO_PUPD_NONE, PIN_DISKCH);
+	gpio_mode_setup(PORT_INDEX, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP , PIN_INDEX);
+	gpio_mode_setup(PORT_TRACK0, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, PIN_TRACK0);
+	gpio_mode_setup(PORT_WRTPRO, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP , PIN_WRTPRO);
+	gpio_mode_setup(PORT_READDATA, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP , PIN_READDATA);
+	gpio_mode_setup(PORT_DISKCH, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP , PIN_DISKCH);
 }
 
 int main(void)
@@ -414,7 +414,16 @@ int main(void)
 	while(system_time < temp_time)
 	{
 	}
-	cylinder(0);
+	if(gpio_port_read(PORT_TRACK0) & PIN_TRACK0)
+	{
+		gpio_set(GPIOD, GPIO12);
+		cylinder(0);
+	}
+	else
+	{
+		current_cylinder = 0;
+		cylinder(40);
+	}
 	
 	while(1)
 	{
