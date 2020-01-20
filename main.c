@@ -133,7 +133,7 @@ void cylinder(uint8_t cylinder)
 			gpio_set(PORT_DIR, PIN_DIR);
 			current_dir = 0;
 			gpio_clear(PORT_STEP, PIN_STEP);
-			event_add(EVENT_STEP_TOCK, 30);
+			event_add(EVENT_STEP_TOCK, 60);
 		}
 		else
 		{
@@ -153,7 +153,7 @@ void cylinder(uint8_t cylinder)
 			current_dir = 0;
 		}
 		gpio_clear(PORT_STEP, PIN_STEP);
-		event_add(EVENT_STEP_TOCK, 30);
+		event_add(EVENT_STEP_TOCK, 60);
 	}
 }
 
@@ -207,54 +207,57 @@ void event_poll()
 {
 	uint32_t time = system_time;
 	
-	if((time >= event_times[next_event]) )//&& ((time - event_times[next_event]) < 1000))
+	if(event_count > 0)
 	{
-		switch(events[next_event])
+		if((time >= event_times[next_event]) && ((time - event_times[next_event]) < 1000))
 		{
-			case EVENT_STEP_TICK:
-				gpio_clear(PORT_STEP, PIN_STEP);
-				event_add(EVENT_STEP_TOCK, 30);
-				break;
-			case EVENT_STEP_TOCK:
-				//gpio_set(GPIOD, GPIO12);
-				gpio_set(PORT_STEP, PIN_STEP);
-				if(target_cylinder == 0)
-				{
-					if(gpio_get(PORT_TRACK0, PIN_TRACK0) == 0)
+			switch(events[next_event])
+			{
+				case EVENT_STEP_TICK:
+					gpio_clear(PORT_STEP, PIN_STEP);
+					event_add(EVENT_STEP_TOCK, 60);
+					break;
+				case EVENT_STEP_TOCK:
+					//gpio_set(GPIOD, GPIO12);
+					gpio_set(PORT_STEP, PIN_STEP);
+					if(target_cylinder == 0)
 					{
-						current_cylinder = 0;
-						event_add(EVENT_STEP_DONE, 200);
-						break;
+						if(gpio_get(PORT_TRACK0, PIN_TRACK0) == 0)
+						{
+							current_cylinder = 0;
+							event_add(EVENT_STEP_DONE, 200);
+							break;
+						}
 					}
-				}
-				if(current_dir)
-				{
-					current_cylinder++;
-				}
-				else
-				{
-					current_cylinder--;
-				}
-				if(current_cylinder == target_cylinder)
-				{
-					event_add(EVENT_STEP_DONE, 200);
-				}
-				else
-				{
-					event_add(EVENT_STEP_TICK, 30);
-				}
-				break;
-			case EVENT_STEP_DONE:
-				gpio_set(PORT_DIR, PIN_DIR);
-				// send a done message to the host
-				break;
+					if(current_dir)
+					{
+						current_cylinder++;
+					}
+					else
+					{
+						current_cylinder--;
+					}
+					if(current_cylinder == target_cylinder)
+					{
+						event_add(EVENT_STEP_DONE, 200);
+					}
+					else
+					{
+						event_add(EVENT_STEP_TICK, 60);
+					}
+					break;
+				case EVENT_STEP_DONE:
+					gpio_set(PORT_DIR, PIN_DIR);
+					// send a done message to the host
+					break;
+			}
+			next_event++;
+			if(next_event > 15)
+			{
+				next_event = 0;
+			}
+			event_count--;
 		}
-		next_event++;
-		if(next_event > 15)
-		{
-			next_event = 0;
-		}
-		event_count--;
 	}
 }
 
@@ -422,7 +425,7 @@ int main(void)
 	else
 	{
 		current_cylinder = 0;
-		cylinder(40);
+		cylinder(79);
 	}
 	
 	while(1)
