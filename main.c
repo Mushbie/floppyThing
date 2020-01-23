@@ -171,7 +171,12 @@ void head(uint8_t head)
 
 void check_disk()
 {
-	
+	char state = 0;
+	if(gpio_get(PORT_DISKCH, PIN_DISKCH) == 0)
+	{
+		state = 1;
+	}
+	while(usbd_ep_write_packet(usb_device, 0x82, &state, 1) == 0);
 }
 
 void motor(uint8_t state)
@@ -202,6 +207,10 @@ void motor(uint8_t state)
 	}
 }
 
+void read()
+{
+	
+}
 
 void event_poll()
 {
@@ -274,6 +283,21 @@ void data_rx_handler(usbd_device *device, uint8_t endpoint)
 	{
 		switch(buffer_in[0])
 		{
+			case CMD_SELECT_DRIVE:
+				drive(buffer_in[1]);
+				break;
+			case CMD_CYLINDER:
+				cylinder(buffer_in[1]);
+				break;
+			case CMD_HEAD:
+				head(buffer_in[1]);
+				break;
+			case CMD_CHECK_DISK:
+				check_disk();
+				break;
+			case CMD_MOTOR:
+				motor(buffer_in[1];
+				break;
 			case CMD_HANDSHAKE:
 				buffer_out[0] = 'F';
 				buffer_out[1] = 'L';
