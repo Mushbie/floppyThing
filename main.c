@@ -249,6 +249,7 @@ void event_poll()
 				case EVENT_STEP_DONE:
 					gpio_set(PORT_DIR, PIN_DIR);
 					// send a done message to the host
+					//while(usbd_ep_write_packet(usb_device, 0x82, (const char*)MSG_DONE, 1) == 0);
 					break;
 			}
 			next_event++;
@@ -417,9 +418,12 @@ int main(void)
 	while(system_time < temp_time)
 	{
 	}
-	if(gpio_port_read(PORT_TRACK0) & PIN_TRACK0)
+	if(gpio_get(PORT_TRACK0, PIN_TRACK0))
 	{
-		gpio_set(GPIOD, GPIO12);
+		if(gpio_get(PORT_DISKCH, PIN_DISKCH))
+		{
+			gpio_set(GPIOD, GPIO12);
+		}
 		cylinder(0);
 	}
 	else
