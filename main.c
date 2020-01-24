@@ -35,6 +35,11 @@
 #define EVENT_STEP_DONE		0x03
 #define EVENT_MOTOR_READY	0x04
 
+#define STATE_DONE			0x00
+#define STATE_STEP_TICK		0x01
+#define STATE_STEP_TOCK		0x02
+#define STATE_SPINUP		0x03
+
 //	pin and port definitions
 #define PORT_DENSEL		GPIOH
 #define PIN_DENSEL		GPIO1
@@ -73,6 +78,9 @@ uint8_t next_event = 0;
 uint8_t event_count = 0;
 uint32_t event_times[16];
 uint8_t events[16];
+
+uint8_t state = STATE_DONE;
+uint32_t state_time = 0;
 
 //	buffer and support variables for outgoing data.
 uint8_t out_buffer[128];
@@ -179,11 +187,11 @@ void check_disk()
 	while(usbd_ep_write_packet(usb_device, 0x82, &state, 1) == 0);
 }
 
-void motor(uint8_t state)
+void motor(uint8_t motor_state)
 {
 	if(current_drive == 1)
 	{
-		if(state)
+		if(motor_state)
 		{
 			gpio_clear(PORT_MOTOR1, PIN_MOTOR1);
 			event_add(EVENT_MOTOR_READY, 10000);
@@ -195,7 +203,7 @@ void motor(uint8_t state)
 	}
 	if(current_drive == 2)
 	{
-		if(state)
+		if(motor_state)
 		{
 			gpio_clear(PORT_MOTOR2, PIN_MOTOR2);
 			event_add(EVENT_MOTOR_READY, 10000);
