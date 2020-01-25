@@ -38,7 +38,8 @@
 #define STATE_DONE			0x00
 #define STATE_STEP_TICK		0x01
 #define STATE_STEP_TOCK		0x02
-#define STATE_SPINUP		0x03
+#define STATE_STEP_DONE		0x03
+#define STATE_SPINUP		0x04
 
 //	pin and port definitions
 #define PORT_DENSEL		GPIOH
@@ -276,6 +277,66 @@ void event_poll()
 			}
 			event_count--;
 		}
+	}
+}
+
+static inline uint32_t next_time(uint32_t delay)
+{
+	return system_time + delay;
+}
+
+void state_poll()
+{
+	uint32_t time = system_time;
+	if(state != STATE_DONE)
+	{
+		if((time >= state_time) && ((time - state_time) < 1000))
+		{
+			switch(state)
+			{
+				case STATE_STEP_TICK:
+					gpio_clear(PORT_STEP, PIN_STEP);
+					state = STATE_STEP_TOCK;
+					state_time = next_time(60);
+					break;
+				case STATE_STEP_TOCK:
+					gpio_set(PORT_STEP, PIN_STEP);
+					if(target_cylinder == 0)
+					{
+						if(gpio_get(PORT_TRACK0, PIN_TRACK0) == 0)
+						{
+							current_cylinder = 0;
+							state = STATE_STEP_DONE;
+							state_time = next_time(200);
+							break;
+						}
+					}
+					if(current_dir)
+					{
+						current_cylinder++;
+					}
+					else
+					{
+						current_cylinder--;
+					}
+					if(current_cylinder == target_cylinder)
+					{
+						state = STATE_STEP_DONE;
+						state_time = next_time(200);
+					}
+					else
+					{
+						state = STATE_STEP_TICK;
+						state_time = next_time(60);
+					}
+					break;
+				case STATE_STEP_DONE:
+					gpio_set(PORT_DIR, PIN_DIR);
+					state = STATE_DONE;
+					// Send a done message to the host
+					break;
+			}
+		}			
 	}
 }
 
