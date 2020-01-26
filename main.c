@@ -142,7 +142,9 @@ void cylinder(uint8_t cylinder)
 			gpio_set(PORT_DIR, PIN_DIR);
 			current_dir = 0;
 			gpio_clear(PORT_STEP, PIN_STEP);
-			event_add(EVENT_STEP_TOCK, 60);
+			//event_add(EVENT_STEP_TOCK, 60);
+			state = STATE_STEP_TICK;
+			state_time = next_time(60);
 		}
 		else
 		{
@@ -162,7 +164,9 @@ void cylinder(uint8_t cylinder)
 			current_dir = 0;
 		}
 		gpio_clear(PORT_STEP, PIN_STEP);
-		event_add(EVENT_STEP_TOCK, 60);
+		//event_add(EVENT_STEP_TOCK, 60);
+		state = STATE_STEP_TICK;
+		state_time = next_time(60);
 	}
 }
 
@@ -180,12 +184,12 @@ void head(uint8_t head)
 
 void check_disk()
 {
-	char state = 0;
+	char disk_state = 0;
 	if(gpio_get(PORT_DISKCH, PIN_DISKCH) == 0)
 	{
-		state = 1;
+		disk_state = 1;
 	}
-	while(usbd_ep_write_packet(usb_device, 0x82, &state, 1) == 0);
+	while(usbd_ep_write_packet(usb_device, 0x82, &disk_state, 1) == 0);
 }
 
 void motor(uint8_t motor_state)
@@ -195,7 +199,9 @@ void motor(uint8_t motor_state)
 		if(motor_state)
 		{
 			gpio_clear(PORT_MOTOR1, PIN_MOTOR1);
-			event_add(EVENT_MOTOR_READY, 10000);
+			//event_add(EVENT_MOTOR_READY, 10000);
+			state = STATE_SPINUP;
+			state_time = next_time(10000);
 		}
 		else
 		{
@@ -207,7 +213,9 @@ void motor(uint8_t motor_state)
 		if(motor_state)
 		{
 			gpio_clear(PORT_MOTOR2, PIN_MOTOR2);
-			event_add(EVENT_MOTOR_READY, 10000);
+			//event_add(EVENT_MOTOR_READY, 10000);
+			state = STATE_SPINUP;
+			state_time = next_time(10000);
 		}
 		else
 		{
