@@ -103,6 +103,11 @@ void sys_tick_handler(void)
 	system_time++;
 }
 
+static inline uint32_t next_time(uint32_t delay)
+{
+	return system_time + delay;
+}
+
 void event_add(uint8_t event, uint32_t delay)
 {
 	uint8_t pos = next_event + event_count;
@@ -288,11 +293,6 @@ void event_poll()
 	}
 }
 
-static inline uint32_t next_time(uint32_t delay)
-{
-	return system_time + delay;
-}
-
 void state_poll()
 {
 	uint32_t time = system_time;
@@ -373,7 +373,7 @@ void data_rx_handler(usbd_device *device, uint8_t endpoint)
 				check_disk();
 				break;
 			case CMD_MOTOR:
-				motor(buffer_in[1];
+				motor(buffer_in[1]);
 				break;
 			case CMD_HANDSHAKE:
 				buffer_out[0] = 'F';
@@ -535,7 +535,7 @@ int main(void)
 	
 	while(1)
 	{
-		event_poll();
+		state_poll();
 	}
 
 	while(1)
