@@ -138,27 +138,3 @@ const struct usb_config_descriptor configuration_desc = {
 	.bMaxPower = 0x32,
 	.interface = interfaces,
 };
-
-enum usbd_request_return_codes cdcacm_request_handler(usbd_device *device,
-	struct usb_setup_data *request, uint8_t **buffer, uint16_t *length,
-	void(**complete)(usbd_device *device, struct usb_setup_data *request))
-{
-	// tell the compiler these valriable not used
-	(void)device;
-	(void)buffer;
-	(void)complete;
-	
-	switch(request->bRequest)
-	{
-		case USB_CDC_REQ_SET_CONTROL_LINE_STATE:
-			return USBD_REQ_HANDLED;
-		case USB_CDC_REQ_SET_LINE_CODING:
-			if(*length < sizeof(struct usb_cdc_line_coding))
-			{
-				return USBD_REQ_NOTSUPP;
-			}
-			return USBD_REQ_HANDLED;
-		default:
-			return USBD_REQ_NOTSUPP;
-	}
-}

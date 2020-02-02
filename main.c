@@ -8,7 +8,7 @@
 #include <libopencm3/usb/usbd.h>
 #include <libopencm3/usb/cdc.h>
 
-#include "usb.c"
+#include "usb_consts.h"
 
 //	pc to mcu protocol
 #define CMD_HALT			0x00
@@ -417,6 +417,30 @@ void data_rx_handler(usbd_device *device, uint8_t endpoint)
 		while(usbd_ep_write_packet(device, 0x82, buffer_out, length) == 0);
 	}
 	
+}
+
+enum usbd_request_return_codes cdcacm_request_handler(usbd_device *device,
+	struct usb_setup_data *request, uint8_t **buffer, uint16_t *length,
+	void(**complete)(usbd_device *device, struct usb_setup_data *request))
+{
+	// tell the compiler these valriable are not used
+	(void)device;
+	(void)buffer;
+	(void)complete;
+	
+	switch(request->bRequest)
+	{
+		case USB_CDC_REQ_SET_CONTROL_LINE_STATE:
+			return USBD_REQ_HANDLED;
+		case USB_CDC_REQ_SET_LINE_CODING:
+			if(*length < sizeof(struct usb_cdc_line_coding))
+			{
+				return USBD_REQ_NOTSUPP;
+			}
+			return USBD_REQ_HANDLED;
+		default:
+			return USBD_REQ_NOTSUPP;
+	}
 }
 
 void cdcacm_set_config(usbd_device *device, uint16_t wValue)
