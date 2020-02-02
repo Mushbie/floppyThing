@@ -29,6 +29,7 @@
 #define MSG_INDEX_OFF		0xC4	// 1100 0100
 #define MSG_NO_DISK			0xC5	// 1100 0101
 #define MSG_DISK_EJECTED	0xC6	// 1100 0110
+#define MSG_INDEX_TIMEOUT	0xC7
 
 #define EVENT_STEP_TICK		0x01
 #define EVENT_STEP_TOCK		0x02
@@ -40,6 +41,9 @@
 #define STATE_STEP_TOCK		0x02
 #define STATE_STEP_DONE		0x03
 #define STATE_SPINUP		0x04
+#define STATE_READ_INDEX	0x05	// wait for index so appear before starting read.
+#define STATE_READ			0x06
+#define STATE_READ_MULTI	0x07
 
 //	pin and port definitions
 #define PORT_DENSEL		GPIOH
@@ -75,10 +79,10 @@ usbd_device *usb_device;
 volatile uint32_t system_time = 0;
 uint32_t temp_time = 0;
 
-uint8_t next_event = 0;
+/*uint8_t next_event = 0;
 uint8_t event_count = 0;
 uint32_t event_times[16];
-uint8_t events[16];
+uint8_t events[16];*/
 
 uint8_t state = STATE_DONE;
 uint32_t state_time = 0;
@@ -97,6 +101,8 @@ uint8_t current_dir = 0;	// 0 is down and 1 is up
 uint8_t current_drive = 0;
 uint8_t command = 0;
 uint8_t parameter = 0;
+uint8_t index_state = 0;
+uint8_t index_count = 0;
 
 void sys_tick_handler(void)
 {
@@ -108,7 +114,21 @@ static inline uint32_t next_time(uint32_t delay)
 	return system_time + delay;
 }
 
-void event_add(uint8_t event, uint32_t delay)
+static inline void message_add(uint8_t message)
+{
+	if(out_position >= 127)
+	{
+		out_position = 0;
+	}
+	else
+	{
+		out_position++;
+	}
+	out_buffer[out_position] = message;
+	out_count++;
+}
+
+/*void event_add(uint8_t event, uint32_t delay)
 {
 	uint8_t pos = next_event + event_count;
 	uint32_t target_time = system_time + delay;	// this might wrap around, but we want that
@@ -120,7 +140,7 @@ void event_add(uint8_t event, uint32_t delay)
 	event_times[pos] = target_time;
 	events[pos] = event;
 	event_count++;
-}
+}*/
 
 void drive(uint8_t drive)
 {
@@ -231,10 +251,12 @@ void motor(uint8_t motor_state)
 
 void read()
 {
-	
+	state = STATE_READ_INDEX;
+	state_time = next_time(10000);	// 1s timeout on finding the index
+	// TODO: enable interrupts on index pin
 }
 
-void event_poll()
+/*void event_poll()
 {
 	uint32_t time = system_time;
 	
@@ -291,7 +313,7 @@ void event_poll()
 			event_count--;
 		}
 	}
-}
+}*/
 
 void state_poll()
 {
@@ -420,16 +442,40 @@ void setup_timer()
 
 void tim6_isr(void)	// Timer overflow handler
 {
-	if(out_position >= 127)
+	message_add(MSG_OVERFLOW);
+}
+
+void exti15_isr(void)	// Index handler
+{
+	if(state == STATE_READ_INDEX)
 	{
-		out_position = 0;
+		state = STATE_READ;
+		index_state = 1;
+		index_count = 1;
+		message_add(MSG_INDEX_ON);
+		// TODO: reset timer
+		// TODO: change index interrupt trigger mode
 	}
-	else
+	else if(state == STATE_READ && index_state == 1) 
 	{
-		out_position++;
+		index_state = 0;
+		message_add(MSG_INDEX_OFF);
+		// TODO: reset timer
+		if(index_count >= 2)
+		{
+			state = STATE_DONE;
+			// TODO: disable timer
+			// TODO: disable index pin intterupt
+			message_add(MSG_DONE);
+		}
 	}
-	out_buffer[out_position] = MSG_OVERFLOW;
-	out_count++;
+	else if(state == STATE_READ && index_state == 0)
+	{
+		index_state = 1;
+		index_count++;
+		message_add(MSG_INDEX_ON);
+		// TODO: reset timer
+	}
 }
 
 void out_buffer_poll()
@@ -542,6 +588,6 @@ int main(void)
 	{
 		out_buffer_poll();
 		usbd_poll(usb_device);
-		event_poll();
+		state_poll();
 	}
 }
