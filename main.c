@@ -58,9 +58,8 @@
 #define STATE_STEP_TOCK		0x02
 #define STATE_STEP_DONE		0x03
 #define STATE_SPINUP		0x04
-#define STATE_READ_INDEX	0x05	// wait for index so appear before starting read.
-#define STATE_READ			0x06
-#define STATE_READ_MULTI	0x07
+#define STATE_READ			0x05
+
 
 //	pin and port definitions
 #define PORT_DENSEL		GPIOH
@@ -120,6 +119,7 @@ uint8_t command = 0;
 uint8_t parameter = 0;
 uint8_t index_state = 0;
 uint8_t index_count = 0;
+uint8_t read_target = 0;
 
 void sys_tick_handler(void)
 {
@@ -266,9 +266,12 @@ void motor(uint8_t motor_state)
 	}
 }
 
-void read()
+void read(uint8_t count)
 {
-	state = STATE_READ_INDEX;
+	state = STATE_READ;
+	index_count = 0;
+	index_state = 0;
+	read_target = count;
 	state_time = next_time(10000);	// 1s timeout on finding the index
 	// TODO: enable interrupts on index pin
 }
@@ -414,6 +417,12 @@ void data_rx_handler(usbd_device *device, uint8_t endpoint)
 			case CMD_MOTOR:
 				motor(buffer_in[1]);
 				break;
+			case CMD_READ:
+				read(1);
+				break;
+			case CMD_READ_MULTI:
+				read(buffer_in[1]);
+				break;
 			case CMD_HANDSHAKE:
 				buffer_out[0] = 'F';
 				buffer_out[1] = 'L';
@@ -488,34 +497,32 @@ void tim6_isr(void)	// Timer overflow handler
 
 void exti15_isr(void)	// Index handler
 {
-	if(state == STATE_READ_INDEX)
+	if(state == STATE_READ)
 	{
-		state = STATE_READ;
-		index_state = 1;
-		index_count = 1;
-		message_add(MSG_INDEX_ON);
-		// TODO: reset timer
-		// TODO: change index interrupt trigger mode
-	}
-	else if(state == STATE_READ && index_state == 1) 
-	{
-		index_state = 0;
-		message_add(MSG_INDEX_OFF);
-		// TODO: reset timer
-		if(index_count >= 2)
+		if(index_state == 0)
 		{
-			state = STATE_DONE;
-			// TODO: disable timer
-			// TODO: disable index pin intterupt
-			message_add(MSG_DONE);
+			index_state = 1;
+			index_count++;
+			message_add(MSG_INDEX_ON);
+			// TODO: reset timer
+			if(index_count == 0)
+			{
+				// TODO: change index interrupt trigger mode
+			}
 		}
-	}
-	else if(state == STATE_READ && index_state == 0)
-	{
-		index_state = 1;
-		index_count++;
-		message_add(MSG_INDEX_ON);
-		// TODO: reset timer
+		else
+		{
+			index_state = 0;
+			message_add(MSG_INDEX_OFF);
+			// TODO: reset timer
+			if(index_count > read_target)
+			{
+				state = STATE_DONE;
+				// TODO: disable timer
+				// TODO: disable index pin intterupt
+				message_add(MSG_DONE);
+			}
+		}
 	}
 }
 
