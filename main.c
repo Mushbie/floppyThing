@@ -20,6 +20,7 @@
 #include <libopencm3/stm32/rcc.h>
 #include <libopencm3/stm32/gpio.h>
 #include <libopencm3/stm32/timer.h>
+#include <libopencm3/stm32/exti.h>
 #include <libopencm3/cm3/nvic.h>
 #include <libopencm3/cm3/systick.h>
 #include <libopencm3/usb/usbd.h>
@@ -274,6 +275,8 @@ void read(uint8_t count)
 	read_target = count;
 	state_time = next_time(10000);	// 1s timeout on finding the index
 	// TODO: enable interrupts on index pin
+	exti_set_trigger(EXTI15, EXTI_TRIGGER_FALLING);
+	exti_enable_request(EXTI15);
 }
 
 /*void event_poll()
@@ -497,6 +500,8 @@ void tim6_isr(void)	// Timer overflow handler
 
 void exti15_isr(void)	// Index handler
 {
+	exti_reset_request(EXTI15);
+	gpio_set(GPIOD, GPIO12);
 	if(state == STATE_READ)
 	{
 		if(index_state == 0)
@@ -508,6 +513,7 @@ void exti15_isr(void)	// Index handler
 			if(index_count == 0)
 			{
 				// TODO: change index interrupt trigger mode
+				exti_set_trigger(EXTI15, EXTI_TRIGGER_BOTH);
 			}
 		}
 		else
@@ -520,6 +526,7 @@ void exti15_isr(void)	// Index handler
 				state = STATE_DONE;
 				// TODO: disable timer
 				// TODO: disable index pin intterupt
+				exti_disable_request(EXTI15);
 				message_add(MSG_DONE);
 			}
 		}
@@ -593,6 +600,9 @@ int main(void)
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO11 | GPIO12);
 	gpio_set_af(GPIOA, GPIO_AF10, GPIO11 | GPIO12);
 	
+	//nvic_enable_irq(NVIC_EXTI15_IRQ);
+	exti_select_source(EXTI15, PORT_INDEX);
+	
 	usb_device = usbd_init(&otgfs_usb_driver, &device_desc, &configuration_desc,
 		usb_strings, 3, control_buffer, sizeof(control_buffer));
 		
@@ -609,10 +619,12 @@ int main(void)
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
 	
 	drive(1);
-	temp_time = 1000 + system_time;
+	motor(1);
+	temp_time = 15000 + system_time;
 	while(system_time < temp_time)
 	{
 	}
+	read(1);
 	if(gpio_get(PORT_TRACK0, PIN_TRACK0))
 	{
 		if(gpio_get(PORT_DISKCH, PIN_DISKCH))
