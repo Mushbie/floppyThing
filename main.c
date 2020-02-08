@@ -498,7 +498,7 @@ void tim6_isr(void)	// Timer overflow handler
 	message_add(MSG_OVERFLOW);
 }
 
-void exti15_isr(void)	// Index handler
+void exti15_10_isr(void)	// Index handler
 {
 	exti_reset_request(EXTI15);
 	gpio_set(GPIOD, GPIO12);
@@ -597,10 +597,11 @@ int main(void)
 	rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_OTGFS);
+	rcc_periph_clock_enable(RCC_SYSCFG);
 	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO11 | GPIO12);
 	gpio_set_af(GPIOA, GPIO_AF10, GPIO11 | GPIO12);
 	
-	//nvic_enable_irq(NVIC_EXTI15_IRQ);
+	nvic_enable_irq(NVIC_EXTI15_10_IRQ);
 	exti_select_source(EXTI15, PORT_INDEX);
 	
 	usb_device = usbd_init(&otgfs_usb_driver, &device_desc, &configuration_desc,
@@ -625,6 +626,8 @@ int main(void)
 	{
 	}
 	read(1);
+	while(1)
+	{}
 	if(gpio_get(PORT_TRACK0, PIN_TRACK0))
 	{
 		if(gpio_get(PORT_DISKCH, PIN_DISKCH))
