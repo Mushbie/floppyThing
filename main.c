@@ -178,6 +178,8 @@ void drive(uint8_t drive)
 void cylinder(uint8_t cylinder)
 {
 	target_cylinder = cylinder;
+	if(target_cylinder > 79)
+		gpio_set(GPIOD, GPIO12);
 	if(cylinder == 0)
 	{
 		if(gpio_get(PORT_TRACK0, PIN_TRACK0))
@@ -619,13 +621,13 @@ int main(void)
 
 	gpio_mode_setup(GPIOD, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, GPIO12);
 	
-	drive(1);
-	motor(1);
+	//drive(1);
+	//motor(1);
 	temp_time = 15000 + system_time;
 	while(system_time < temp_time)
 	{
 	}
-	read(1);
+	/*read(1);
 	while(1)
 	{}
 	if(gpio_get(PORT_TRACK0, PIN_TRACK0))
@@ -645,7 +647,7 @@ int main(void)
 	while(1)
 	{
 		state_poll();
-	}
+	}*/
 
 	while(1)
 	{
