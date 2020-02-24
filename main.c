@@ -146,6 +146,11 @@ static inline void message_add(uint8_t message)
 	out_count++;
 }
 
+static inline void serial_send_byte(uint8_t byte)
+{
+	while(usbd_ep_write_packet(usb_device, 0x82, (char *)&byte, 1) == 0);
+}
+
 /*void event_add(uint8_t event, uint32_t delay)
 {
 	uint8_t pos = next_event + event_count;
@@ -173,6 +178,7 @@ void drive(uint8_t drive)
 	{
 		gpio_clear(PORT_DRVSEL2, PIN_DRVSEL2);
 	}
+	serial_send_byte(MSG_DONE);
 }
 
 void cylinder(uint8_t cylinder)
@@ -225,16 +231,18 @@ void head(uint8_t head)
 	{
 		gpio_set(PORT_SIDESEL, PIN_SIDESEL);
 	}
+	serial_send_byte(MSG_DONE);
 }
 
 void check_disk()
 {
-	char disk_state = 0;
+	uint8_t disk_state = 0;
 	if(gpio_get(PORT_DISKCH, PIN_DISKCH) == 0)
 	{
 		disk_state = 1;
 	}
-	while(usbd_ep_write_packet(usb_device, 0x82, &disk_state, 1) == 0);
+	//while(usbd_ep_write_packet(usb_device, 0x82, &disk_state, 1) == 0);
+	serial_send_byte(disk_state);
 }
 
 void motor(uint8_t motor_state)
@@ -389,6 +397,11 @@ void state_poll()
 					gpio_set(PORT_DIR, PIN_DIR);
 					state = STATE_DONE;
 					// Send a done message to the host
+					serial_send_byte(MSG_DONE);
+					break;
+				case STATE_SPINUP:
+					state = STATE_DONE;
+					serial_send_byte(MSG_DONE);
 					break;
 			}
 		}			
@@ -441,11 +454,11 @@ void data_rx_handler(usbd_device *device, uint8_t endpoint)
 				buffer_out[9] = 'N';
 				buffer_out[10] = 'G';
 				length = 11;
+				while(usbd_ep_write_packet(device, 0x82, buffer_out, length) == 0);
 				break;
 			default:
 				break;
 		}
-		while(usbd_ep_write_packet(device, 0x82, buffer_out, length) == 0);
 	}
 	
 }
