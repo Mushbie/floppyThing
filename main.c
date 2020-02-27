@@ -46,8 +46,9 @@
 #define MSG_INDEX_ON		0xC3	// 1100 0011
 #define MSG_INDEX_OFF		0xC4	// 1100 0100
 #define MSG_NO_DISK			0xC5	// 1100 0101
-#define MSG_DISK_EJECTED	0xC6	// 1100 0110
-#define MSG_INDEX_TIMEOUT	0xC7
+#define MSG_DISK_LOADED		0xC6
+#define MSG_DISK_EJECTED	0xC7
+#define MSG_INDEX_TIMEOUT	0xC8
 
 #define EVENT_STEP_TICK		0x01
 #define EVENT_STEP_TOCK		0x02
@@ -236,13 +237,14 @@ void head(uint8_t head)
 
 void check_disk()
 {
-	uint8_t disk_state = 0;
 	if(gpio_get(PORT_DISKCH, PIN_DISKCH) == 0)
 	{
-		disk_state = 1;
+		serial_send_byte(MSG_DISK_LOADED);
 	}
-	//while(usbd_ep_write_packet(usb_device, 0x82, &disk_state, 1) == 0);
-	serial_send_byte(disk_state);
+	else
+	{
+		serial_send_byte(MSG_NO_DISK);
+	}
 }
 
 void motor(uint8_t motor_state)
