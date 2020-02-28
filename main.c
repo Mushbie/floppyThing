@@ -201,6 +201,8 @@ void cylinder(uint8_t cylinder)
 		else
 		{
 			current_cylinder = 0;
+			state = STATE_STEP_DONE;
+			state_time = next_time(10);
 		}
 	}
 	else
