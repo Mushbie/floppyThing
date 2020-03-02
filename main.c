@@ -241,11 +241,11 @@ void check_disk()
 {
 	if(gpio_get(PORT_DISKCH, PIN_DISKCH) == 0)
 	{
-		serial_send_byte(MSG_DISK_LOADED);
+		serial_send_byte(MSG_NO_DISK);
 	}
 	else
 	{
-		serial_send_byte(MSG_NO_DISK);
+		serial_send_byte(MSG_DISK_LOADED);
 	}
 }
 
