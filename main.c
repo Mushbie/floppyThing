@@ -288,6 +288,8 @@ void read(uint8_t count)
 	index_state = 0;
 	read_target = count;
 	state_time = next_time(10000);	// 1s timeout on finding the index
+	TIM6_CNT = 0xff40;
+	TIM6_CR1 |= 1; // enable timer
 	// TODO: enable interrupts on index pin
 	exti_set_trigger(EXTI15, EXTI_TRIGGER_FALLING);
 	exti_enable_request(EXTI15);
@@ -508,7 +510,7 @@ void setup_timer()
 	rcc_periph_clock_enable(RCC_TIM6);
 	TIM6_PSC |= 4;	// 21MHz at sysclk 168MHz
 	TIM6_DIER |= 1;
-	TIM6_ARR = 0x40ff;	// If I have a timer that can count to 191 I need to start at 64(0x40)
+	TIM6_ARR = 0xff40;	// If I have a timer that can count to 191 I need to start at 64(0x40)
 	
 }
 
@@ -525,20 +527,25 @@ void exti15_10_isr(void)	// Index handler
 	{
 		if(index_state == 0)
 		{
-			index_state = 1;
-			index_count++;
+			TIM6_CR1 &= ~1;	// disable timer
+			message_add((uint8_t)TIM6_CNT);
 			message_add(MSG_INDEX_ON);
-			// TODO: reset timer
+			TIM6_CNT = 0xff40;
+			TIM6_CR1 |= 1;
 			if(index_count == 0)
 			{
 				// TODO: change index interrupt trigger mode
 				exti_set_trigger(EXTI15, EXTI_TRIGGER_BOTH);
 			}
+			index_state = 1;
+			index_count++;
 		}
 		else
 		{
-			index_state = 0;
+			TIM6_CR1 &= ~1;	// disable timer
+			message_add((uint8_t)TIM6_CNT);
 			message_add(MSG_INDEX_OFF);
+			TIM6_CNT = 0xff40;
 			// TODO: reset timer
 			if(index_count > read_target)
 			{
@@ -548,8 +555,19 @@ void exti15_10_isr(void)	// Index handler
 				exti_disable_request(EXTI15);
 				message_add(MSG_DONE);
 			}
+			else
+			{
+				TIM6_CR1 |= 1; // enable timer
+			}
+			index_state = 0;
 		}
 	}
+}
+
+void exti6_isr(void)	// Read data handler
+{
+	exti_reset_request(EXTI6);
+	
 }
 
 void out_buffer_poll()
