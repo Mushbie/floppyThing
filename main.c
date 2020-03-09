@@ -293,6 +293,7 @@ void read(uint8_t count)
 	// TODO: enable interrupts on index pin
 	exti_set_trigger(EXTI15, EXTI_TRIGGER_FALLING);
 	exti_enable_request(EXTI15);
+	exti_enable_request(EXTI6);
 }
 
 /*void event_poll()
@@ -553,6 +554,7 @@ void exti15_10_isr(void)	// Index handler
 				// TODO: disable timer
 				// TODO: disable index pin intterupt
 				exti_disable_request(EXTI15);
+				exti_disable_request(EXTI6);
 				message_add(MSG_DONE);
 			}
 			else
@@ -564,10 +566,13 @@ void exti15_10_isr(void)	// Index handler
 	}
 }
 
-void exti6_isr(void)	// Read data handler
+void exti9_5_isr(void)	// Read data handler
 {
 	exti_reset_request(EXTI6);
-	
+	TIM6_CR1 &= ~1;	// disble timer
+	message_add((uint8_t)TIM6_CNT);
+	TIM6_CNT = 0xff40;
+	TIM6_CR1 |= 1;	// enable timer
 }
 
 void out_buffer_poll()
@@ -640,6 +645,9 @@ int main(void)
 	
 	nvic_enable_irq(NVIC_EXTI15_10_IRQ);
 	exti_select_source(EXTI15, PORT_INDEX);
+	nvic_enable_irq(NVIC_EXTI9_5_IRQ);
+	exti_select_source(EXTI6, PORT_READDATA);
+	exti_set_trigger(EXTI6, EXTI_TRIGGER_BOTH);
 	
 	usb_device = usbd_init(&otgfs_usb_driver, &device_desc, &configuration_desc,
 		usb_strings, 3, control_buffer, sizeof(control_buffer));
