@@ -288,8 +288,8 @@ void read(uint8_t count)
 	index_state = 0;
 	read_target = count;
 	state_time = next_time(10000);	// 1s timeout on finding the index
-	TIM6_CNT = 0xff40;
-	TIM6_CR1 |= 1; // enable timer
+	TIM3_CNT = 0xff40;
+	TIM3_CR1 |= 1; // enable timer
 	// TODO: enable interrupts on index pin
 	exti_set_trigger(EXTI15, EXTI_TRIGGER_FALLING);
 	exti_enable_request(EXTI15);
@@ -508,14 +508,14 @@ void cdcacm_set_config(usbd_device *device, uint16_t wValue)
 
 void setup_timer()
 {
-	rcc_periph_clock_enable(RCC_TIM6);
-	TIM6_PSC |= 4;	// 21MHz at sysclk 168MHz
-	TIM6_DIER |= 1;
-	TIM6_ARR = 0xff40;	// If I have a timer that can count to 191 I need to start at 64(0x40)
-	
+	rcc_periph_clock_enable(RCC_TIM3);
+	TIM3_PSC |= 4;	// 21MHz at sysclk 168MHz
+	TIM3_DIER |= 1;
+	TIM3_ARR = 0xbf;	// If I have a timer that can count to 191 I need to start at 64(0x40)
+	TIM3_CR1 |= 16;	// set timer as countdown
 }
 
-void tim6_isr(void)	// Timer overflow handler
+void TIM3_isr(void)	// Timer overflow handler
 {
 	message_add(MSG_OVERFLOW);
 }
@@ -528,11 +528,11 @@ void exti15_10_isr(void)	// Index handler
 	{
 		if(index_state == 0)
 		{
-			TIM6_CR1 &= ~1;	// disable timer
-			message_add((uint8_t)TIM6_CNT);
+			TIM3_CR1 &= ~1;	// disable timer
+			message_add((uint8_t)TIM3_CNT);
 			message_add(MSG_INDEX_ON);
-			TIM6_CNT = 0xff40;
-			TIM6_CR1 |= 1;
+			TIM3_CNT = 0xbf;
+			TIM3_CR1 |= 1;
 			if(index_count == 0)
 			{
 				// TODO: change index interrupt trigger mode
@@ -543,10 +543,10 @@ void exti15_10_isr(void)	// Index handler
 		}
 		else
 		{
-			TIM6_CR1 &= ~1;	// disable timer
-			message_add((uint8_t)TIM6_CNT);
+			TIM3_CR1 &= ~1;	// disable timer
+			message_add((uint8_t)TIM3_CNT);
 			message_add(MSG_INDEX_OFF);
-			TIM6_CNT = 0xff40;
+			TIM3_CNT = 0xbf;
 			// TODO: reset timer
 			if(index_count > read_target)
 			{
@@ -559,7 +559,7 @@ void exti15_10_isr(void)	// Index handler
 			}
 			else
 			{
-				TIM6_CR1 |= 1; // enable timer
+				TIM3_CR1 |= 1; // enable timer
 			}
 			index_state = 0;
 		}
@@ -569,10 +569,10 @@ void exti15_10_isr(void)	// Index handler
 void exti9_5_isr(void)	// Read data handler
 {
 	exti_reset_request(EXTI6);
-	TIM6_CR1 &= ~1;	// disble timer
-	message_add((uint8_t)TIM6_CNT);
-	TIM6_CNT = 0xff40;
-	TIM6_CR1 |= 1;	// enable timer
+	TIM3_CR1 &= ~1;	// disble timer
+	message_add((uint8_t)TIM3_CNT);
+	TIM3_CNT = 0xbf;
+	TIM3_CR1 |= 1;	// enable timer
 }
 
 void out_buffer_poll()
@@ -647,7 +647,7 @@ int main(void)
 	exti_select_source(EXTI15, PORT_INDEX);
 	nvic_enable_irq(NVIC_EXTI9_5_IRQ);
 	exti_select_source(EXTI6, PORT_READDATA);
-	exti_set_trigger(EXTI6, EXTI_TRIGGER_BOTH);
+	exti_set_trigger(EXTI6, EXTI_TRIGGER_FALLING);
 	
 	usb_device = usbd_init(&otgfs_usb_driver, &device_desc, &configuration_desc,
 		usb_strings, 3, control_buffer, sizeof(control_buffer));
