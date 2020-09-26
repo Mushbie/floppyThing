@@ -96,6 +96,7 @@ uint8_t control_buffer[128];
 usbd_device *usb_device;
 volatile uint32_t system_time = 0;
 uint32_t temp_time = 0;
+uint32_t i;
 
 /*uint8_t next_event = 0;
 uint8_t event_count = 0;
@@ -556,6 +557,10 @@ void exti15_10_isr(void)	// Index handler
 				exti_disable_request(EXTI15);
 				exti_disable_request(EXTI6);
 				message_add(MSG_DONE);
+				for(i=0;i<64;i++)
+				{
+					message_add(0x69);
+				}
 			}
 			else
 			{
