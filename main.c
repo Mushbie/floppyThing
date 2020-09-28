@@ -660,6 +660,8 @@ int main(void)
 	usbd_register_set_config_callback(usb_device, cdcacm_set_config);
 	
 	setup_io();
+	setup_timer();
+	nvic_enable_irq(NVIC_TIM3_IRQ);
 	
 	// setup systick
 	systick_set_reload(16800);	// 0.1mS interval
